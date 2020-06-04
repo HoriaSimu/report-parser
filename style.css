@@ -57,10 +57,15 @@ thead {
   width: 3em;
 }
 
-.cellAtWork {
+.cellSickRate {
   width: 5em;
 }
 
 .cellSickness {
  width: 5em;
+}
+
+.subtotal {
+  font-weight: bold;
+  background-color: lightgray;
 }

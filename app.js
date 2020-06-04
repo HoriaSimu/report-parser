@@ -6,9 +6,34 @@ var report = document.getElementById('report');
 //initialize the output collection of data, as an empty array
 var output = [];
 
-// the list of cost centers relevant for the final report
-var ccList = [ '1101', '1121', '1211', '1261', '1291', '1321', '1331', '1491',
-               '1531', '1581', '1592', '1701', '1711', '1721', '1731' ];
+// the lists of cost centers relevant for the final report
+var firstDepartment = {
+  name: 'Department #1',
+  ccList: [ '1101', '1121', '1211', '1261', '1291', '1321', '1331', '1491',
+                 '1531', '1581', '1592', '1701', '1711', '1721', '1731' ]
+};
+
+var secondDepartment = {
+  name: 'Department #2',
+  ccList: [ '1103', '1113', '1123', '1203', '1213', '1223', '1233', '1243',
+                  '1253', '1263', '1383', '3013', '3043' ]
+};
+
+var thirdDepartment = {
+  name: 'Department #3',
+  ccList: [ '1303', '1313', '1323', '1333', '1343', '1353', '1363', '1373',
+            '1012', '1022', '1032', '1042', '1052', '1062', '1072', '1082',
+            '1092']
+};
+
+var fourthDepartment = {
+  name: 'Department #4',
+  ccList: [ '1413', '1423', '1433', '0014', '0104', '0204', '1104', '1114',
+            '1124', '1134', '1144', '1204', '1304', '1324', '1404', '1504',
+            '1604', '1704']
+};
+
+var input = [ firstDepartment, secondDepartment, thirdDepartment, fourthDepartment ];
 
 // the unnecessary header part from the report, which needs to be removed before extracting data
 var header = '-----------------------------------------------------------------------------------------------' + '\n' +
@@ -34,40 +59,61 @@ function parseReport() {
   var cleanedData = rawReportData.split(header).join(''); // delete all the unnecessary headers from the report
   var ccCollection = cleanedData.split('Department:        '); // split the report into a collection of strings, one string per cost center
 
-  for (let i = 0; i < ccCollection.length; i++) {   // loop through every element of the collection of cost center strings
-    // if the first 4 characters of the string is a cost center in ccList, then process the data. else skip.
-    if (ccList.includes(ccCollection[i].substring(0, 4))) {
-      // split the rows of the string into another collection of strings.
-
-      var costCenterData = ccCollection[i].split('\n'); // "\n" is the special character for line breaks. we split the string at each line breaks
-      // the first element of costCenterData will always contain the cost center number and description
-      var firstRow = costCenterData[0];
-      // the last element will always contain the number of persons
-      var lastRow = costCenterData[costCenterData.length-2];
-      // the second to last element will always contain the totals - incl. the total sickness leaves
-      var secondLastRow = costCenterData[costCenterData.length-4];
-
-      var elementOutput = {};
-      elementOutput.ccNumber = firstRow.substring(0, 4); // extracting the first 4 characters of the first element (cost center number)
-      elementOutput.ccDescription = firstRow.substring(5, firstRow.length); // extracting the rest of the characters (cc description)
-      elementOutput.ccTotal = lastRow.split('Number of persons: ').join(''); // extracting the total number of employees
-
-      if (secondLastRow.length === 86) {  // when there are sick leaves, this string is 86 characters long. else it's shorter.
-        elementOutput.ccSickLeave = secondLastRow.substring(secondLastRow.indexOf(',')-5,secondLastRow.indexOf(',')).trim() // extract sick leaves from string
-      } else {
-        elementOutput.ccSickLeave = 0;
-      }
-
-      elementOutput.ccAtWork = elementOutput.ccTotal - elementOutput.ccSickLeave;
-
-      output.push(elementOutput); // inserting the extracted data in the final output array
-
+  for (let k = 0; k < input.length; k++) {
+    // initialize values for subtotal row
+    var subtotal = {
+      description : input[k].name,
+      employees : 0,
+      sickRate : 0,
+      sickLeave : 0
     };
-  }
+
+    var sickLeavesCounter = 0;
+
+    for (let i = 0; i < ccCollection.length; i++) {   // loop through every element of the collection of cost center strings
+      // if the first 4 characters of the string is a cost center in ccList, then process the data. else skip.
+      if (input[k].ccList.includes(ccCollection[i].substring(0, 4))) {
+        // split the rows of the string into another collection of strings.
+
+        var costCenterData = ccCollection[i].split('\n'); // "\n" is the special character for line breaks. we split the string at each line breaks
+        // the first element of costCenterData will always contain the cost center number and description
+        var firstRow = costCenterData[0];
+        // the last element will always contain the number of persons
+        var lastRow = costCenterData[costCenterData.length-2];
+        // the second to last element will always contain the totals - incl. the total sickness leaves
+        var secondLastRow = costCenterData[costCenterData.length-4];
+
+        var elementOutput = {};
+        elementOutput.ccNumber = firstRow.substring(0, 4); // extracting the first 4 characters of the first element (cost center number)
+        elementOutput.ccDescription = firstRow.substring(5, firstRow.length); // extracting the rest of the characters (cc description)
+        elementOutput.ccTotal = Number(lastRow.split('Number of persons: ').join('')); // extracting the total number of employees
+
+        if (secondLastRow.length === 86) {  // when there are sick leaves, this string is 86 characters long. else it's shorter.
+          var temp = secondLastRow.substring(secondLastRow.indexOf(',')-5, secondLastRow.indexOf(',')).trim(); // extract sick leaves from string
+          elementOutput.ccSickLeave = Number(temp);
+        } else {
+          elementOutput.ccSickLeave = 0;
+        }
+
+        elementOutput.ccSickRate = sickRatePercentage(elementOutput.ccSickLeave, elementOutput.ccTotal);
+
+        sickLeavesCounter = sickLeavesCounter + elementOutput.ccSickLeave;
+
+        subtotal.employees = subtotal.employees + elementOutput.ccTotal;
+
+        output.push(elementOutput); // inserting the extracted data in the final output array
+
+      };
+    };
+
+    subtotal.sickLeave = sickLeavesCounter;
+    subtotal.sickRate = sickRatePercentage(subtotal.sickLeave, subtotal.employees);
+    output.push(subtotal);
+  };
 
   // run the function which will create the final table, based on the output (see below the function as is defined)
   generateReportTable(output);
-}
+};
 
 
 // defining the function which will be ran last and will generate and display the table on the web page
@@ -76,7 +122,7 @@ function generateReportTable (output) {
   form.className = 'hiddenObject'; // hides the form
 
   var newTable = document.createElement('table');
-  var headerLabels = ['No.', 'Cost Center', 'Description', 'Total employees', 'Employees on the line', 'Employees on medical leave']
+  var headerLabels = ['No.', 'Cost Center', 'Description', 'Total employees', 'On medical leave', 'Sickness rate']
 
   var tableHead = document.createElement('thead');
   var tableBody = document.createElement('tbody');
@@ -90,18 +136,42 @@ function generateReportTable (output) {
 
   tableHead.appendChild(headerRow);
   newTable.appendChild(tableHead);
+  var counter = 1;
 
   for (let j = 0; j < output.length; j++) {
     var newDataRow = document.createElement('tr');
 
-    createTableElement('td', newDataRow, j+1);
-    createTableElement('td', newDataRow, output[j].ccNumber);
-    createTableElement('td', newDataRow, output[j].ccDescription, 'cellDescription');
-    createTableElement('td', newDataRow, output[j].ccTotal, 'cellTotal');
-    createTableElement('td', newDataRow, output[j].ccAtWork, 'cellAtWork');
-    createTableElement('td', newDataRow, output[j].ccSickLeave || '-', 'cellSickness');
+    if (output[j].description) {
+      createTableElement('td', newDataRow, '');
+      createTableElement('td', newDataRow, '');
+      createTableElement('td', newDataRow, 'Total ' + output[j].description, 'cellDescription');
+      createTableElement('td', newDataRow, output[j].employees, 'cellTotal');
+      createTableElement('td', newDataRow, output[j].sickLeave || '-', 'cellSickness');
+      if (output[j].sickRate != 0) {
+        createTableElement('td', newDataRow, output[j].sickRate  + '%', 'cellSickRate');
+      } else {
+        createTableElement('td', newDataRow, '-', 'cellSickRate');
+      }
+
+      newDataRow.className = 'subtotal';
+      counter = 1;
+
+    } else {
+      createTableElement('td', newDataRow, counter);
+      createTableElement('td', newDataRow, output[j].ccNumber);
+      createTableElement('td', newDataRow, output[j].ccDescription, 'cellDescription');
+      createTableElement('td', newDataRow, output[j].ccTotal, 'cellTotal');
+      createTableElement('td', newDataRow, output[j].ccSickLeave || '-', 'cellSickness');
+      if (output[j].ccSickRate != 0) {
+        createTableElement('td', newDataRow, output[j].ccSickRate + '%', 'cellSickRate');
+      } else {
+        createTableElement('td', newDataRow, '-', 'cellSickRate');
+      }
+      counter++;
+    }
 
     tableBody.appendChild(newDataRow);
+
   }
 
   newTable.appendChild(tableBody);
@@ -111,11 +181,16 @@ function generateReportTable (output) {
 }
 
 // a small function used to simplify generating the table
-function createTableElement (type, parent, content, cellClass) {
+function createTableElement ( type, parent, content, cellClass ) {
   var newElement = document.createElement(type);
   if (cellClass) {
       newElement.className = cellClass;
   }
   newElement.appendChild(document.createTextNode(content));
   parent.appendChild(newElement);
+}
+
+// a small function for calculating sick rate percentage
+function sickRatePercentage ( sick, total ) {
+  return (sick / total * 100).toFixed(1);
 }
