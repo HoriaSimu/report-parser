@@ -33,7 +33,7 @@ var fourthDepartment = {
             '1604', '1704']
 };
 
-var input = [ firstDepartment, secondDepartment, thirdDepartment, fourthDepartment ];
+var input = [ firstDepartment ];
 
 // the unnecessary header part from the report, which needs to be removed before extracting data
 var header = '-----------------------------------------------------------------------------------------------' + '\n' +
