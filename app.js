@@ -9,7 +9,7 @@ var output = [];
 // the lists of cost centers relevant for the final report
 var firstDepartment = {
   name: 'Department #1',
-  ccList: [ '111', '112', '113', '114', '115' ]
+  ccList: [ '1111', '1112', '1113', '1114', '1115' ]
 };
 
 var input = [ firstDepartment ];
